@@ -1,0 +1,9 @@
+# Editors
+.idea
+.vscode
+
+# Build testing junk
+output
+kubernetes
+
+helmrelease.yaml
