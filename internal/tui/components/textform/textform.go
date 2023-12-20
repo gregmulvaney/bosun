@@ -4,7 +4,6 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/gregmulvaney/bosun/internal/tui"
 	"github.com/gregmulvaney/bosun/internal/tui/components/button"
 	"strings"
 )
@@ -28,7 +27,7 @@ func New(fieldNames []string, prompt string) Model {
 		t = textinput.New()
 		t.Prompt = fieldNames[i] + ": "
 		t.CharLimit = 64
-		t.PromptStyle = tui.PrimaryColor
+		t.PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("39"))
 		switch i {
 		case 0:
 			t.Focus()

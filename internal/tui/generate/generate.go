@@ -4,9 +4,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/gregmulvaney/bosun/internal/tui"
 	"github.com/gregmulvaney/bosun/internal/tui/components/textform"
-	"github.com/mistakenelf/teacup/code"
 )
 
 type state int
@@ -23,7 +21,6 @@ type model struct {
 	formViewport viewport.Model
 	codeViewport viewport.Model
 	appData      textform.Model
-	codeData     code.Model
 }
 
 func Prompt(fullscreen bool) *tea.Program {
@@ -50,7 +47,6 @@ func (m model) Init() tea.Cmd {
 	var cmds []tea.Cmd
 	switch m.state {
 	case appDataView:
-		cmds = append(cmds, m.codeData.SetFileName("./main.go"))
 		cmds = append(cmds, m.appData.Init())
 		return tea.Batch(cmds...)
 	}
@@ -69,7 +65,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if !m.ready {
 			m.formViewport = viewport.New(msg.Width/3, msg.Height-3)
 			m.codeViewport = viewport.New(msg.Width/2, msg.Height-3)
-			m.codeData.SetSize(msg.Width/2, msg.Height-3)
 			m.height = msg.Height
 			m.width = msg.Width
 			m.ready = true
@@ -78,7 +73,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.formViewport.Width = msg.Width / 3
 			m.codeViewport.Height = msg.Height - 3
 			m.codeViewport.Width = msg.Width / 2
-			m.codeData.SetSize(msg.Width, msg.Height)
 			m.width = msg.Width
 			m.height = msg.Height
 		}
@@ -96,11 +90,11 @@ func (m model) View() string {
 	switch m.state {
 	default:
 		m.formViewport.SetContent(m.appData.View())
-		m.codeViewport.SetContent(m.codeData.View())
+		m.codeViewport.SetContent(lipgloss.NewStyle().Width(40).Render("Code preview placeholder"))
 		return m.renderView(m.formViewport, m.codeViewport)
 	}
 }
 
 func (m model) renderView(formViewport viewport.Model, codeViewport viewport.Model) string {
-	return lipgloss.Place(m.width, m.height, 0, 0, lipgloss.JoinHorizontal(lipgloss.Top, tui.ViewportStyle.Render(formViewport.View()), tui.ViewportStyle.Render(codeViewport.View())))
+	return lipgloss.Place(m.width, m.height, 0, 0, lipgloss.JoinHorizontal(lipgloss.Top, lipgloss.NewStyle().Render(formViewport.View()), lipgloss.NewStyle().Render(codeViewport.View())))
 }
