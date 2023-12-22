@@ -13,9 +13,9 @@ var textformStyle = lipgloss.NewStyle()
 type CompleteMsg bool
 
 type Model struct {
-	focusIndex int
+	FocusIndex int
 	prompt     string
-	inputs     []textinput.Model
+	Inputs     []textinput.Model
 	fieldNames []string
 	width      int
 }
@@ -28,17 +28,13 @@ func New(fieldNames []string, prompt string) Model {
 		t.Prompt = fieldNames[i] + ": "
 		t.CharLimit = 64
 		t.PromptStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("39"))
-		switch i {
-		case 0:
-			t.Focus()
-		}
 		inputs[i] = t
 	}
 
 	m := Model{
-		focusIndex: 0,
+		FocusIndex: 0,
 		prompt:     prompt,
-		inputs:     inputs,
+		Inputs:     inputs,
 		fieldNames: fieldNames,
 	}
 
@@ -54,37 +50,37 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case " ", "enter":
-			if m.focusIndex == len(m.inputs) {
+			if m.FocusIndex == len(m.Inputs) {
 
 			}
 		case "up", "down", "tab":
 			s := msg.String()
 			if s == "up" {
-				m.focusIndex--
+				m.FocusIndex--
 			} else {
-				m.focusIndex++
+				m.FocusIndex++
 			}
-			if m.focusIndex < 0 {
-				m.focusIndex = 0
-			} else if m.focusIndex > len(m.inputs) {
-				m.focusIndex = len(m.inputs)
+			if m.FocusIndex < 0 {
+				m.FocusIndex = 0
+			} else if m.FocusIndex > len(m.Inputs) {
+				m.FocusIndex = len(m.Inputs)
 			}
-			cmds := make([]tea.Cmd, len(m.inputs))
-			for i := 0; i < len(m.inputs); i++ {
-				if i == m.focusIndex {
-					cmds[i] = m.inputs[i].Focus()
+			cmds := make([]tea.Cmd, len(m.Inputs))
+			for i := 0; i < len(m.Inputs); i++ {
+				if i == m.FocusIndex {
+					cmds[i] = m.Inputs[i].Focus()
 					continue
 				}
-				m.inputs[i].Blur()
+				m.Inputs[i].Blur()
 			}
 			return m, tea.Batch(cmds...)
 		}
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 	}
-	cmds := make([]tea.Cmd, len(m.inputs))
-	for i := range m.inputs {
-		m.inputs[i], cmds[i] = m.inputs[i].Update(msg)
+	cmds := make([]tea.Cmd, len(m.Inputs))
+	for i := range m.Inputs {
+		m.Inputs[i], cmds[i] = m.Inputs[i].Update(msg)
 	}
 	return m, tea.Batch(cmds...)
 }
@@ -92,10 +88,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 func (m Model) View() string {
 	var b strings.Builder
 	b.WriteString("\n" + m.prompt + "\n\n")
-	for i := range m.inputs {
-		b.WriteString(m.inputs[i].View() + "\n")
+	for i := range m.Inputs {
+		b.WriteString(m.Inputs[i].View() + "\n")
 	}
-	btn := button.New("Next", m.focusIndex, len(m.inputs))
+	btn := button.New("Next", m.FocusIndex, len(m.Inputs))
 	b.WriteString("\n" + btn.View() + "\n")
 	return textformStyle.Width(m.width).Render(b.String())
 }

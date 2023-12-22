@@ -2,10 +2,11 @@ package browser
 
 import (
 	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gregmulvaney/bosun/internal/tui"
+	"github.com/gregmulvaney/bosun/internal/tui/components/statusbar"
 	"github.com/gregmulvaney/bosun/internal/tui/deployments"
+	"github.com/gregmulvaney/bosun/internal/tui/generate"
 	"strings"
 )
 
@@ -17,25 +18,28 @@ var logo = `   ___  ____  ______  ___  __
 type state int
 
 const (
-	deploymentsView state = iota
+	deploymentView state = iota
 	generateView
 )
 
 type model struct {
 	state       state
 	ready       bool
-	width       int
-	viewport    viewport.Model
+	focused     bool
+	statusbar   statusbar.Model
 	deployments deployments.Model
+	generate    generate.Model
 }
 
 func Browser() *tea.Program {
+
 	d := deployments.New()
+	s := statusbar.New()
 
 	m := model{
-		state:       deploymentsView,
-		ready:       false,
+		state:       deploymentView,
 		deployments: d,
+		statusbar:   s,
 	}
 
 	p := tea.NewProgram(m, tea.WithAltScreen())
@@ -43,116 +47,86 @@ func Browser() *tea.Program {
 }
 
 func (m model) Init() tea.Cmd {
-	return nil
+	var cmds []tea.Cmd
+	switch m.state {
+	default:
+
+	}
+	return tea.Batch(cmds...)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
-	//var cmds []tea.Cmd
+	var cmds []tea.Cmd
 	switch msg := msg.(type) {
+	case deployments.FocusMsg:
+		if msg {
+			m.focused = true
+		} else {
+			m.focused = false
+		}
+	case generate.FocusMsg:
+		if msg {
+			m.focused = true
+		} else {
+			m.focused = false
+		}
 	case tea.WindowSizeMsg:
 		tui.WindowSize = msg
-		if !m.ready {
-			m.viewport = viewport.New(msg.Width, msg.Height-tui.HeaderHeight)
-		} else {
-			m.viewport.Width = msg.Width
-			m.viewport.Height = msg.Height - tui.HeaderHeight
-		}
+
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, tui.Keymap.Quit):
 			return m, tea.Quit
 		}
+		// String key events
 		switch msg.String() {
 		case "g":
-			m.state = generateView
+			// Switch to generate view unless already on generate
+			if !m.focused && m.state != generateView {
+				m.generate = generate.New()
+				m.state = generateView
+				m.generate.AppData.Inputs[0].Focus()
+				m.focused = true
+			}
 		case "q":
-			m.state = deploymentsView
+			if !m.focused {
+				m.state = deploymentView
+			}
 		}
+	}
+	m.statusbar, cmd = m.statusbar.Update(msg)
+	cmds = append(cmds, cmd)
 
-	}
 	switch m.state {
-	default:
-		m.deployments.Table.Focus()
-		m.deployments, cmd = m.deployments.Update(msg)
+	case generateView:
+		m.generate, cmd = m.generate.Update(msg)
 		return m, cmd
+	default:
+		if !m.deployments.Ready {
+			m.deployments.Table.Focus()
+			m.focused = true
+			m.deployments.Ready = true
+		}
+		m.deployments, cmd = m.deployments.Update(msg)
+		cmds = append(cmds, cmd)
 	}
+	return m, tea.Batch(cmds...)
 }
 
 func (m model) View() string {
 	var b strings.Builder
+
 	b.WriteString(logo)
 	b.WriteString("\n\n")
+
 	switch m.state {
 	case generateView:
-		m.viewport.SetContent("Generate")
-		b.WriteString(tui.BorderStyle.Width(tui.WindowSize.Width - 2).Render(m.viewport.View()))
-		return b.String()
-	default:
-		m.viewport.SetContent(m.deployments.View())
-		b.WriteString(m.viewport.View())
-		return b.String()
+		b.WriteString(m.generate.View())
+	case deploymentView:
+		b.WriteString(m.deployments.View())
 	}
+	b.WriteString("\n")
+	b.WriteString(m.statusbar.View())
+	return b.String()
 }
-
-//const (
-//	deploymentsView state = iota
-//	generate
-//)
-//
-//type model struct {
-//	ready           bool
-//	width           int
-//	height          int
-//	state           state
-//	contentViewport viewport.Model
-//	deployments     deployments.Model
-//}
-//
-//func Browser() *tea.Program {
-//	d := deployments.New()
-//	m := model{
-//		ready:       false,
-//		deployments: d,
-//		state:       deploymentsView,
-//	}
-//
-//	p := tea.NewProgram(m, tea.WithAltScreen())
-//	return p
-//}
-//
-//func (m model) Init() tea.Cmd {
-//	return nil
-//}
-//
-//func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-//	switch msg := msg.(type) {
-//	case tea.KeyMsg:
-//		switch msg.String() {
-//		case "ctrl+c":
-//			return m, tea.Quit
-//		}
-//	case tea.WindowSizeMsg:
-//		if !m.ready {
-//			m.contentViewport = viewport.New(msg.Width, msg.Height-7)
-//			m.width = msg.Width
-//		} else {
-//			m.contentViewport.Height = msg.Height - 7
-//			m.contentViewport.Width = msg.Width
-//			m.width = msg.Width
-//		}
-//
-//	}
-//	return m, nil
-//}
-//
-//func (m model) View() string {
-//	var b strings.Builder
-//	b.WriteString(PrimaryColor.Padding(1, 1).Render(logo) + "\n")
-//	switch m.state {
-//	default:
-//		m.contentViewport.SetContent(m.deployments.View())
-//	}
-//	b.WriteString(lipgloss.NewStyle().Border(lipgloss.RoundedBorder()).BorderForeground(lipgloss.Color("#F27405")).Render(m.contentViewport.View()))
-//	return b.String()
-//}

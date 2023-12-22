@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/gregmulvaney/bosun/internal/tui/generate"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -21,10 +20,7 @@ func generateCmd() *cobra.Command {
 				fmt.Println("Error: No kubernetes directory found")
 				return
 			}
-			p := generate.Prompt(true)
-			if _, err := p.Run(); err != nil {
-				panic(err)
-			}
+
 		},
 	}
 }
