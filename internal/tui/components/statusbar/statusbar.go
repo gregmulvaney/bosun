@@ -7,46 +7,119 @@ import (
 	"github.com/gregmulvaney/bosun/internal/tui"
 )
 
+type ModeInsertMsg bool
+type ModeNormalMsg bool
+type SpawnGenerateMsg bool
+
+type mode int
+
+const (
+	normal mode = iota
+	insert
+	command
+)
+
 type Model struct {
-	Status  string
-	Mode    string
-	Command textinput.Model
+	Mode         mode
+	CommandInput textinput.Model
 }
 
 func New() Model {
+	cmdInput := textinput.New()
+	cmdInput.Prompt = ""
+
 	m := Model{
-		Status:  "NORMAL",
-		Mode:    "Deployments",
-		Command: textinput.New(),
+		Mode:         normal,
+		CommandInput: cmdInput,
 	}
+
 	return m
+}
+
+func (m Model) Init() tea.Cmd {
+	return textinput.Blink
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	var cmd tea.Cmd
+	var cmds []tea.Cmd
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
+		case "i":
+			if m.Mode == normal {
+				m.Mode = insert
+				return m, func() tea.Msg {
+					return ModeInsertMsg(true)
+				}
+			}
 		case ":":
-			m.Command.Focus()
+			if !m.CommandInput.Focused() && m.Mode == normal {
+				m.CommandInput.Focus()
+				m.Mode = command
+			}
+		case "esc":
+			if m.Mode == command || m.Mode == insert {
+				m.Mode = normal
+				m.CommandInput.Blur()
+				m.CommandInput.Reset()
+				return m, func() tea.Msg {
+					return ModeNormalMsg(true)
+				}
+			}
+		case "enter":
+			if m.CommandInput.Focused() {
+				cmd = m.handleCommand()
+				cmds = append(cmds, cmd)
+				m.CommandInput.Reset()
+				m.CommandInput.Blur()
+				m.Mode = normal
+			}
 		}
 	}
-	m.Command, cmd = m.Command.Update(msg)
-	return m, cmd
+
+	m.CommandInput, cmd = m.CommandInput.Update(msg)
+	cmds = append(cmds, cmd)
+	return m, tea.Batch(cmds...)
 }
 
 func (m Model) View() string {
-	status := lipgloss.NewStyle().
-		Padding(0, 1).
-		Background(lipgloss.Color("200")).
+	var ModeColor string
+	var mode string
+	switch m.Mode {
+	case insert:
+		mode = "INSERT"
+		ModeColor = "39"
+	case command:
+		mode = "COMMAND"
+		ModeColor = "70"
+	default:
+		mode = "NORMAL"
+		ModeColor = "220"
+	}
+	modeStyle := lipgloss.NewStyle().
 		Foreground(lipgloss.Color("#333333")).
-		Width(8).
+		Width(9).
+		Background(lipgloss.Color(ModeColor)).
 		Bold(true).
-		Render(m.Status)
-	mode := lipgloss.NewStyle().Padding(0, 1).Background(lipgloss.Color("#444444")).Render(m.Mode)
-	command := lipgloss.NewStyle().
-		Padding(0, 1).
+		Padding(0, 1)
+	commandStyle := lipgloss.NewStyle().
 		Background(lipgloss.Color("#333333")).
-		Width(tui.WindowSize.Width - 8).Render(m.Command.View())
-	return lipgloss.JoinHorizontal(0, status, mode, command)
+		Width(tui.WindowSize.Width-9).
+		Padding(0, 1)
+
+	return lipgloss.JoinHorizontal(0, modeStyle.Render(mode), commandStyle.Render(m.CommandInput.View()))
+}
+
+func (m Model) handleCommand() tea.Cmd {
+	command := m.CommandInput.Value()
+	switch command {
+	case ":q":
+		return tea.Quit
+	case ":g", ":generate":
+		return func() tea.Msg {
+			return SpawnGenerateMsg(true)
+		}
+	}
+	return nil
 }
