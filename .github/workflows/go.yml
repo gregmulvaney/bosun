@@ -23,7 +23,7 @@ jobs:
 
     - name: Get Dependencies
       run: |
-        go get -v -t -d ./..,
+        go get . 
 
     - name: Build
       run: go build -o ./bosun
