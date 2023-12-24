@@ -8,6 +8,61 @@ import (
 	"strings"
 )
 
+//type Model struct {
+//	FocusIndex int
+//	prompt     string
+//	Table      table.Model
+//	Fields     []string
+//	Inputs     []textinput.Model
+//}
+//
+//func New(fields []string, prompt string) Model {
+//
+//	cols := []table.Column{
+//		{Width: 20},
+//		{Width: 40},
+//	}
+//
+//	rows := make([]table.Row, len(fields))
+//	inputs := make([]textinput.Model, len(fields))
+//	var t textinput.Model
+//	for i := range inputs {
+//		t = textinput.New()
+//		t.CharLimit = 64
+//		t.Prompt = ""
+//		inputs[i] = t
+//		rows[i] = table.Row{fields[i], inputs[i].View()}
+//	}
+//
+//	tab := table.New(table.WithColumns(cols), table.WithRows(rows))
+//
+//	m := Model{
+//		FocusIndex: 0,
+//		prompt:     prompt,
+//		Table:      tab,
+//		Fields:     fields,
+//		Inputs:     inputs,
+//	}
+//	return m
+//}
+//
+//func (m Model) Init() tea.Cmd {
+//	return textinput.Blink
+//}
+//
+//func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
+//	var cmd tea.Cmd
+//	var cmds []tea.Cmd
+//
+//	m.Table, cmd = m.Table.Update(msg)
+//	cmds = append(cmds, cmd)
+//	return m, tea.Batch(cmds...)
+//}
+//
+//func (m Model) View() string {
+//	return m.Table.View()
+//}
+
 var textformStyle = lipgloss.NewStyle()
 
 type CompleteMsg bool
@@ -51,7 +106,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		switch msg.String() {
 		case " ", "enter":
 			if m.FocusIndex == len(m.Inputs) {
-
+				return m, func() tea.Msg {
+					return CompleteMsg(true)
+				}
 			}
 		case "up", "down", "tab":
 			s := msg.String()
@@ -87,11 +144,19 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 func (m Model) View() string {
 	var b strings.Builder
-	b.WriteString("\n" + m.prompt + "\n\n")
+	b.WriteString(m.prompt + "\n\n")
 	for i := range m.Inputs {
 		b.WriteString(m.Inputs[i].View() + "\n")
 	}
 	btn := button.New("Next", m.FocusIndex, len(m.Inputs))
 	b.WriteString("\n" + btn.View() + "\n")
 	return textformStyle.Width(m.width).Render(b.String())
+}
+
+func (m Model) Values() map[string]string {
+	values := map[string]string{}
+	for i := range m.Inputs {
+		values[m.fieldNames[i]] = m.Inputs[i].Value()
+	}
+	return values
 }

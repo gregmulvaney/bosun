@@ -7,6 +7,7 @@ require (
 	github.com/charmbracelet/bubbletea v0.24.2
 	github.com/charmbracelet/lipgloss v0.9.1
 	github.com/spf13/cobra v1.8.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (

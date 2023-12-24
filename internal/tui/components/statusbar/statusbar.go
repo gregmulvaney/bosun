@@ -10,13 +10,14 @@ import (
 type ModeInsertMsg bool
 type ModeNormalMsg bool
 type SpawnGenerateMsg bool
+type SpawnDeploymentsMsg bool
 
 type mode int
 
 const (
-	normal mode = iota
-	insert
-	command
+	Normal mode = iota
+	Insert
+	Command
 )
 
 type Model struct {
@@ -29,7 +30,7 @@ func New() Model {
 	cmdInput.Prompt = ""
 
 	m := Model{
-		Mode:         normal,
+		Mode:         Normal,
 		CommandInput: cmdInput,
 	}
 
@@ -47,20 +48,20 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "i":
-			if m.Mode == normal {
-				m.Mode = insert
+			if m.Mode == Normal {
+				m.Mode = Insert
 				return m, func() tea.Msg {
 					return ModeInsertMsg(true)
 				}
 			}
 		case ":":
-			if !m.CommandInput.Focused() && m.Mode == normal {
+			if !m.CommandInput.Focused() && m.Mode == Normal {
 				m.CommandInput.Focus()
-				m.Mode = command
+				m.Mode = Command
 			}
 		case "esc":
-			if m.Mode == command || m.Mode == insert {
-				m.Mode = normal
+			if m.Mode == Command || m.Mode == Insert {
+				m.Mode = Normal
 				m.CommandInput.Blur()
 				m.CommandInput.Reset()
 				return m, func() tea.Msg {
@@ -73,7 +74,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				cmds = append(cmds, cmd)
 				m.CommandInput.Reset()
 				m.CommandInput.Blur()
-				m.Mode = normal
+				m.Mode = Normal
 			}
 		}
 	}
@@ -87,10 +88,10 @@ func (m Model) View() string {
 	var ModeColor string
 	var mode string
 	switch m.Mode {
-	case insert:
+	case Insert:
 		mode = "INSERT"
 		ModeColor = "39"
-	case command:
+	case Command:
 		mode = "COMMAND"
 		ModeColor = "70"
 	default:
@@ -119,6 +120,10 @@ func (m Model) handleCommand() tea.Cmd {
 	case ":g", ":generate":
 		return func() tea.Msg {
 			return SpawnGenerateMsg(true)
+		}
+	case ":d", ":deployments":
+		return func() tea.Msg {
+			return SpawnDeploymentsMsg(true)
 		}
 	}
 	return nil

@@ -57,6 +57,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		tui.WindowSize = msg
 	case statusbar.ModeInsertMsg:
 		switch m.state {
+		case generateView:
+			m.generate.Focus()
 		default:
 			m.deployments.Table.Focus()
 		}
@@ -68,16 +70,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case statusbar.SpawnGenerateMsg:
 		m.generate = generate.New()
 		m.state = generateView
+	case statusbar.SpawnDeploymentsMsg:
+		m.state = deploymentsView
+	case generate.ChartGeneratedMsg:
+		m.state = deploymentsView
+		m.statusbar.Mode = statusbar.Normal
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, tui.Keymap.Quit):
 			return m, tea.Quit
 		}
 	}
-	switch m.state {
-	default:
-		m.deployments, cmd = m.deployments.Update(msg)
-		cmds = append(cmds, cmd)
+	if m.statusbar.Mode == statusbar.Insert {
+		switch m.state {
+		case generateView:
+			m.generate, cmd = m.generate.Update(msg)
+			cmds = append(cmds, cmd)
+		default:
+			m.deployments, cmd = m.deployments.Update(msg)
+			cmds = append(cmds, cmd)
+		}
 	}
 	m.statusbar, cmd = m.statusbar.Update(msg)
 	cmds = append(cmds, cmd)
