@@ -97,16 +97,24 @@ func NewChart() HelmChart {
 }
 
 func Build(chart HelmChart, namespace string) {
-	appsDir := os.Getenv("BOSUN_FLUX_DIR") + "/kubernetes/apps"
+	appsDir := os.Getenv("BOSUN_TEMPLATE_DIR") + "/kubernetes/apps"
 	nsDir := appsDir + "/" + namespace
 	if _, err := os.Stat(nsDir); os.IsNotExist(err) {
-		_ = os.Mkdir(nsDir, 0755)
+		err = os.Mkdir(nsDir, 0755)
+		if err != nil {
+			panic(err)
+		}
 	}
+	// TODO: Template and populate
+	_, _ = os.Create(nsDir + "/" + "kustomization.yaml")
+	_, _ = os.Create(nsDir + "/" + "namespace.yaml")
 	releaseDir := nsDir + "/" + chart.Metadata.Name
 	_ = os.Mkdir(releaseDir, 0755)
-
+	// TODO: Template and populate
+	_, _ = os.Create(releaseDir + "/" + "ks.yaml")
 	releaseAppDir := releaseDir + "/" + "app"
 	_ = os.Mkdir(releaseAppDir, 0755)
 	chartYaml, _ := yaml.Marshal(chart)
 	os.WriteFile(releaseAppDir+"/"+"helmrelease.yaml", chartYaml, 0755)
+	os.Create(releaseAppDir + "/" + "kustomization.yaml")
 }
